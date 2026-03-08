@@ -7,7 +7,7 @@ class Usuario(BaseModel):
     apellido: str
     correo: EmailStr
     telefono: str
-    contraseña: str
+    contrasena: str
     estado: Optional[str] = "activo"
     tipo_documento: str
     numero_documento: str
