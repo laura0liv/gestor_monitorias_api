@@ -1,4 +1,5 @@
 from http.client import HTTPException
+from fastapi import HTTPException
 from fastapi.encoders import jsonable_encoder
 import psycopg2
 from config.db_config import get_db_connection
@@ -52,15 +53,15 @@ class UsuarioController:
             content = {} 
             
             content={
-                    'id_usuario':int(result[0]),
-                    'tipo_documento':result[1],
-                    'numero_documento':result[2],
-                    'nombre':result[3],
-                    'apellido':result[4],
-                    'correo':result[5],
-                    'telefono':result[6],
-                    'contrasena':result[7],
-                    'estado':result[8]
+                    'id_usuario':int(result[0]), #type: ignore
+                    'tipo_documento':result[1],#type: ignore
+                    'numero_documento':result[2],#type: ignore
+                    'nombre':result[3],#type: ignore
+                    'apellido':result[4],#type: ignore
+                    'correo':result[5],#type: ignore
+                    'telefono':result[6],#type: ignore
+                    'contrasena':result[7],#type: ignore
+                    'estado':result[8]#type: ignore
             }
             payload.append(content)
             
@@ -94,7 +95,7 @@ class UsuarioController:
                     usuario_data['estado']
                 )
             )
-            new_id = cursor.fetchone()[0]
+            new_id = cursor.fetchone()[0] #type: ignore
             conn.commit()
             return {"id_usuario": new_id}
         except Exception as e:
@@ -110,8 +111,7 @@ class UsuarioController:
         try:
             conn = get_db_connection()
             cursor = conn.cursor()
-            cursor.execute(
-                "UPDATE usuario SET tipo_documento = %s, numero_documento = %s, nombre = %s, apellido = %s, correo = %s, telefono = %s, contrasena = %s, estado = %s WHERE id_usuario = %s",
+            cursor.execute("UPDATE usuario SET tipo_documento = %s, numero_documento = %s, nombre = %s, apellido = %s, correo = %s, telefono = %s, contrasena = %s, estado = %s WHERE id_usuario = %s",
                 (
                     usuario_data['tipo_documento'],
                     usuario_data['numero_documento'],
