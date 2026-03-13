@@ -5,7 +5,10 @@ from controllers.rol_controller import RolController
 from models.rol_model import Rol
 
 
-router = APIRouter()
+router = APIRouter(
+    prefix="/rol",
+    tags=["Rol"]
+)
 nuevo_rol = RolController()
 
 @router.get("/get_rol/")

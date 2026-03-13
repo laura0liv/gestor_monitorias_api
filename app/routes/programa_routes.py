@@ -3,7 +3,10 @@ from fastapi.encoders import jsonable_encoder
 from models.programa_model import Programa
 from controllers.programa_controller import ProgramaController
 
-router = APIRouter()
+router = APIRouter(
+    prefix="/programa",
+    tags=["Programa"]
+)
 nuevo_programa = ProgramaController()
 @router.get("/get_programas/")
 async def get_programas():

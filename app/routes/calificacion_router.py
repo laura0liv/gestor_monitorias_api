@@ -4,7 +4,10 @@ from models.calificacion_model import Calificacion
 from controllers.calificacion_controller import CalificacionController
 
 
-router = APIRouter()
+router = APIRouter(
+    prefix="/calificacion",
+    tags=["Calificacion"]
+)
 nuevo_calificacion = CalificacionController()
 
 

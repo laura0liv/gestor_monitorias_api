@@ -3,7 +3,10 @@ from fastapi.encoders import jsonable_encoder
 from models.aula_model import Aula
 from controllers.aula_controller import AulaController
 
-router = APIRouter()
+router = APIRouter(
+    prefix="/aula",
+    tags=["Aula"]
+)
 nuevo_aula = AulaController()
 
 

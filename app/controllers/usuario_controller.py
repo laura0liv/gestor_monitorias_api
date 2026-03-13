@@ -27,7 +27,8 @@ class UsuarioController:
                     'correo':result[5],
                     'telefono':result[6],
                     'contrasena':result[7],
-                    'estado':result[8]
+                    'estado':result[8],
+                    'id_rol':result[9]
               
                 }
                 payload.append(content)
@@ -53,15 +54,16 @@ class UsuarioController:
             content = {} 
             
             content={
-                    'id_usuario':int(result[0]), #type: ignore
-                    'tipo_documento':result[1],#type: ignore
-                    'numero_documento':result[2],#type: ignore
-                    'nombre':result[3],#type: ignore
-                    'apellido':result[4],#type: ignore
-                    'correo':result[5],#type: ignore
-                    'telefono':result[6],#type: ignore
-                    'contrasena':result[7],#type: ignore
-                    'estado':result[8]#type: ignore
+                    'id_usuario':int(result[0]), 
+                    'tipo_documento':result[1],
+                    'numero_documento':result[2],
+                    'nombre':result[3],
+                    'apellido':result[4],
+                    'correo':result[5],
+                    'telefono':result[6],
+                    'contrasena':result[7],
+                    'estado':result[8],
+                    'id_rol':result[9]
             }
             payload.append(content)
             
@@ -83,7 +85,7 @@ class UsuarioController:
             conn = get_db_connection()
             cursor = conn.cursor()
             cursor.execute(
-                "INSERT INTO usuario (tipo_documento, numero_documento, nombre, apellido, correo, telefono, contrasena, estado) VALUES (%s, %s, %s, %s, %s, %s, %s, %s) RETURNING id_usuario",
+                "INSERT INTO usuario (tipo_documento, numero_documento, nombre, apellido, correo, telefono, contrasena, estado, id_rol) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id_usuario",
                 (
                     usuario_data['tipo_documento'],
                     usuario_data['numero_documento'],
@@ -92,7 +94,8 @@ class UsuarioController:
                     usuario_data['correo'],
                     usuario_data['telefono'],
                     usuario_data['contrasena'],
-                    usuario_data['estado']
+                    usuario_data['estado'],
+                    usuario_data['id_rol']
                 )
             )
             new_id = cursor.fetchone()[0] #type: ignore
@@ -111,7 +114,7 @@ class UsuarioController:
         try:
             conn = get_db_connection()
             cursor = conn.cursor()
-            cursor.execute("UPDATE usuario SET tipo_documento = %s, numero_documento = %s, nombre = %s, apellido = %s, correo = %s, telefono = %s, contrasena = %s, estado = %s WHERE id_usuario = %s",
+            cursor.execute("UPDATE usuario SET tipo_documento = %s, numero_documento = %s, nombre = %s, apellido = %s, correo = %s, telefono = %s, contrasena = %s, estado = %s, id_rol = %s WHERE id_usuario = %s",
                 (
                     usuario_data['tipo_documento'],
                     usuario_data['numero_documento'],
@@ -121,6 +124,7 @@ class UsuarioController:
                     usuario_data['telefono'],
                     usuario_data['contrasena'],
                     usuario_data['estado'],
+                    usuario_data['id_rol'],         
                     id_usuario
                 )
             )
