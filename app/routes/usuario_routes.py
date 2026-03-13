@@ -5,11 +5,14 @@ from controllers.usuario_controller import UsuarioController
 from models.usuario_model import Usuario
 
 
-router = APIRouter()
+router = APIRouter(
+    prefix="/usuarios",
+    tags=["Usuarios"]
+)
 nuevo_usuario = UsuarioController()
 
-@router.get("/get_usuario/")
-async def get_usuario():
+@router.get("/get_all_usuario/")
+async def get_all_usuario():
     rpta = nuevo_usuario.get_all_usuario()
     return rpta
 

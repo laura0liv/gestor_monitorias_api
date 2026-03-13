@@ -4,11 +4,14 @@ from fastapi.encoders import jsonable_encoder
 from models.materia_model import Materia
 from controllers.materia_controller import MateriaController
 
-router = APIRouter()
+router = APIRouter(
+    prefix="/materia",
+    tags=["Materia"]
+)
 nueva_materia = MateriaController()
 
-@router.get("/get_materia/")
-async def get_materia():
+@router.get("/get_all_materia/")
+async def get_all_materia():
     rpta = nueva_materia.get_all_materia()
     return rpta
 
