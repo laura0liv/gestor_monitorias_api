@@ -1,9 +1,7 @@
-
 from fastapi import APIRouter
 from fastapi.encoders import jsonable_encoder
 from controllers.monitor_materia_controller import MonitorMateriaController
-from models.materia_model import Materia
-
+from models.monitor_materia_model import MonitorMateria
 
 router = APIRouter(
     prefix="/monitor_materia",
@@ -13,27 +11,32 @@ nueva_monitor_materias = MonitorMateriaController()
 
 @router.get("/get_monitor_materias/")
 async def get_monitor_materias():
-    rpta = nueva_monitor_materias.get_all_monitor_materias()
-    return rpta
+    return nueva_monitor_materias.get_all_monitor_materias()
 
-@router.get("/get_monitor_materia/{id_materia}")
-async def get_monitor_materia(id_materia: int): 
-    rpta = nueva_monitor_materias.get_monitor_materia(id_materia)
-    return rpta
+@router.get("/get_monitor_materia/{id_monitor}/{id_materia}")
+async def get_monitor_materia(id_monitor: int, id_materia: int):
+    return nueva_monitor_materias.get_monitor_materia(id_monitor, id_materia)
 
-@router.post("/create_monitor_materia/")
-async def create_monitor_materia(materia: Materia): 
-    materia_data = jsonable_encoder(materia)
-    rpta = nueva_monitor_materias.create_monitor_materia(materia_data)
-    return rpta
+# ✅ Sin barra final — coincide con el fetch del frontend
+@router.post("/create_monitor_materia")
+async def create_monitor_materia(monitor_materias: MonitorMateria):
+    monitor_materia_data = jsonable_encoder(monitor_materias)
+    return nueva_monitor_materias.create_monitor_materia(monitor_materia_data)
 
-@router.put("/update_monitor_materia/{id_materia}")
-async def update_monitor_materia(id_materia: int, materia: Materia):
-    materia_data = jsonable_encoder(materia)
-    rpta = nueva_monitor_materias.update_monitor_materia(id_materia, materia_data)
-    return rpta
+@router.put("/update_monitor_materia/{id_monitor}/{id_materia}")
+async def update_monitor_materia(id_monitor: int, id_materia: int, monitor_materias: MonitorMateria):
+    monitor_materia_data = jsonable_encoder(monitor_materias)
+    return nueva_monitor_materias.update_monitor_materia(id_monitor, id_materia, monitor_materia_data)
 
-@router.delete("/delete_monitor_materia/{id_materia}")
-async def delete_monitor_materia(id_materia: int):
-    rpta = nueva_monitor_materias.delete_monitor_materia(id_materia)
-    return rpta
+# ✅ Query params en vez de path — coincide con el fetch del frontend
+@router.delete("/delete_monitor_materia")
+async def delete_monitor_materia(id_monitor: int, id_materia: int):
+    return nueva_monitor_materias.delete_monitor_materia(id_monitor, id_materia)
+
+@router.get("/get_monitors_and_subjects/")
+async def get_monitors_and_subjects():
+    return nueva_monitor_materias.get_monitors_and_subjects()
+
+@router.delete("/delete_subject_from_monitor_if_admin/{current_user_role}/{id_monitor}/{id_materia}")
+async def delete_subject_from_monitor_if_admin(current_user_role: int, id_monitor: int, id_materia: int):
+    return nueva_monitor_materias.delete_subject_from_monitor_if_admin(current_user_role, id_monitor, id_materia)

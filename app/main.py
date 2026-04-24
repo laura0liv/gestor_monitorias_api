@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from routes.monitoria_routes import router as monitoria_routes
+from routes.monitor_materia_routes import router as monitor_materia_routes
 from routes.seguimiento_academico_routes import router as seguimiento_academico_routes
 from routes.sesion_seguimiento_routes import router as sesion_seguimiento_routes
 from routes.horario_monitor_routes import router as horario_monitor_routes
@@ -35,6 +36,7 @@ app.add_middleware(
 )
 
 app.include_router(aula_routes)
+app.include_router(monitor_materia_routes)
 app.include_router(calificacion_routes)
 app.include_router(estudiante_materia_routes)
 app.include_router(horario_monitor_routes)
