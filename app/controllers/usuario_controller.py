@@ -1,7 +1,5 @@
-from http.client import HTTPException
 from fastapi import HTTPException
-from fastapi.encoders import jsonable_encoder
-import psycopg2
+from psycopg2.extras import RealDictCursor
 from config.db_config import get_db_connection
 
 
@@ -9,256 +7,242 @@ class UsuarioController:
 
     def get_all_usuario(self):
         conn = None
+
         try:
             conn = get_db_connection()
-            cursor = conn.cursor()
-            cursor.execute("SELECT * FROM usuario")
-            results = cursor.fetchall()
-            payload = []
-            content = {}
-            
-            for result in results:
-                content={
-                    'id_usuario':int(result[0]),
-                    'tipo_documento':result[1],
-                    'numero_documento':result[2],
-                    'nombre':result[3],
-                    'apellido':result[4],
-                    'correo':result[5],
-                    'telefono':result[6],
-                    'contrasena':result[7],
-                    'estado':result[8],
-                    'id_rol':result[9]
-              
-                }
-                payload.append(content)
-                content={}
-            
-            return payload
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+
+            cursor.execute("""
+                SELECT
+                    id_usuario,
+                    tipo_documento,
+                    numero_documento,
+                    nombre,
+                    apellido,
+                    correo,
+                    telefono,
+                    contrasena,
+                    estado,
+                    id_rol,
+                    active,
+                    created_at,
+                    updated_at
+                FROM usuario
+                WHERE active = true
+            """)
+
+            return cursor.fetchall()
 
         except Exception as e:
-            return {"error": str(e)}
+            raise HTTPException(status_code=500, detail=str(e))
 
         finally:
             if conn:
+                cursor.close()
                 conn.close()
-    
-    
+
     def get_usuario(self, id_usuario: int):
+        conn = None
+
         try:
             conn = get_db_connection()
-            cursor = conn.cursor()
-            cursor.execute("SELECT * FROM usuario WHERE id_usuario = %s", (id_usuario,))
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+
+            cursor.execute("""
+                SELECT
+                    id_usuario,
+                    tipo_documento,
+                    numero_documento,
+                    nombre,
+                    apellido,
+                    correo,
+                    telefono,
+                    contrasena,
+                    estado,
+                    id_rol,
+                    active,
+                    created_at,
+                    updated_at
+                FROM usuario
+                WHERE id_usuario = %s
+                AND active = true
+            """, (id_usuario,))
+
             result = cursor.fetchone()
-            payload = []
-            content = {} 
-            
-            content={
-                    'id_usuario':int(result[0]), 
-                    'tipo_documento':result[1],
-                    'numero_documento':result[2],
-                    'nombre':result[3],
-                    'apellido':result[4],
-                    'correo':result[5],
-                    'telefono':result[6],
-                    'contrasena':result[7],
-                    'estado':result[8],
-                    'id_rol':result[9]
-            }
-            payload.append(content)
-            
-            json_data = jsonable_encoder(content)            
-            if result:
-               return  json_data
-            else:
-                raise HTTPException(status_code=404, detail="User not found")  
-                
-        except psycopg2.Error as err:
-            print(err)
-            conn.rollback()
+
+            if not result:
+                raise HTTPException(
+                    status_code=404,
+                    detail="Usuario not found"
+                )
+
+            return result
+
+        except HTTPException:
+            raise
+
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=str(e))
+
         finally:
-            conn.close()
+            if conn:
+                cursor.close()
+                conn.close()
 
     def create_usuario(self, usuario_data: dict):
         conn = None
+
         try:
             conn = get_db_connection()
-            cursor = conn.cursor()
-            cursor.execute(
-                "INSERT INTO usuario (tipo_documento, numero_documento, nombre, apellido, correo, telefono, contrasena, estado, id_rol) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id_usuario",
-                (
-                    usuario_data['tipo_documento'],
-                    usuario_data['numero_documento'],
-                    usuario_data['nombre'],
-                    usuario_data['apellido'],
-                    usuario_data['correo'],
-                    usuario_data['telefono'],
-                    usuario_data['contrasena'],
-                    usuario_data['estado'],
-                    usuario_data['id_rol']
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+
+            cursor.execute("""
+                INSERT INTO usuario (
+                    tipo_documento,
+                    numero_documento,
+                    nombre,
+                    apellido,
+                    correo,
+                    telefono,
+                    contrasena,
+                    estado,
+                    id_rol,
+                    active
                 )
-            )
-            new_id = cursor.fetchone()[0] #type: ignore
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                RETURNING id_usuario
+            """, (
+                usuario_data['tipo_documento'],
+                usuario_data['numero_documento'],
+                usuario_data['nombre'],
+                usuario_data['apellido'],
+                usuario_data['correo'],
+                usuario_data['telefono'],
+                usuario_data['contrasena'],
+                usuario_data['estado'],
+                usuario_data['id_rol'],
+                usuario_data.get('active', True)
+            ))
+
+            new_data = cursor.fetchone()
+
             conn.commit()
-            return {"id_usuario": new_id}
+
+            return {
+                "message": "Usuario created successfully",
+                "id_usuario": new_data["id_usuario"]
+            }
+
         except Exception as e:
             if conn:
                 conn.rollback()
-            return {"error": str(e)}
+
+            raise HTTPException(status_code=500, detail=str(e))
+
         finally:
             if conn:
+                cursor.close()
                 conn.close()
 
     def update_usuario(self, id_usuario: int, usuario_data: dict):
         conn = None
+
         try:
             conn = get_db_connection()
             cursor = conn.cursor()
-            cursor.execute("UPDATE usuario SET tipo_documento = %s, numero_documento = %s, nombre = %s, apellido = %s, correo = %s, telefono = %s, contrasena = %s, estado = %s, id_rol = %s WHERE id_usuario = %s",
-                (
-                    usuario_data['tipo_documento'],
-                    usuario_data['numero_documento'],
-                    usuario_data['nombre'],
-                    usuario_data['apellido'],
-                    usuario_data['correo'],
-                    usuario_data['telefono'],
-                    usuario_data['contrasena'],
-                    usuario_data['estado'],
-                    usuario_data['id_rol'],         
-                    id_usuario
+
+            cursor.execute("""
+                UPDATE usuario
+                SET
+                    tipo_documento = %s,
+                    numero_documento = %s,
+                    nombre = %s,
+                    apellido = %s,
+                    correo = %s,
+                    telefono = %s,
+                    contrasena = %s,
+                    estado = %s,
+                    id_rol = %s,
+                    active = %s,
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE id_usuario = %s
+            """, (
+                usuario_data['tipo_documento'],
+                usuario_data['numero_documento'],
+                usuario_data['nombre'],
+                usuario_data['apellido'],
+                usuario_data['correo'],
+                usuario_data['telefono'],
+                usuario_data['contrasena'],
+                usuario_data['estado'],
+                usuario_data['id_rol'],
+                usuario_data['active'],
+                id_usuario
+            ))
+
+            if cursor.rowcount == 0:
+                raise HTTPException(
+                    status_code=404,
+                    detail="Usuario not found"
                 )
-            )
+
             conn.commit()
-            return {"message": "Usuario updated successfully"}
+
+            return {
+                "message": "Usuario updated successfully"
+            }
+
+        except HTTPException:
+            raise
+
         except Exception as e:
             if conn:
                 conn.rollback()
-            return {"error": str(e)}
+
+            raise HTTPException(status_code=500, detail=str(e))
+
         finally:
             if conn:
+                cursor.close()
                 conn.close()
 
     def delete_usuario(self, id_usuario: int):
         conn = None
+
         try:
             conn = get_db_connection()
             cursor = conn.cursor()
-            cursor.execute("DELETE FROM usuario WHERE id_usuario = %s", (id_usuario,))
-            conn.commit()
-            return {"message": "Usuario deleted successfully"}
-        except Exception as e:
-            if conn:
-                conn.rollback()
-            return {"error": str(e)}
-        finally:
-            if conn:
-                conn.close()
 
-    def get_users_by_role(self, role_id: int):
-        conn = None
-        try:
-            conn = get_db_connection()
-            cursor = conn.cursor()
-            cursor.execute("SELECT * FROM usuario WHERE id_rol = %s", (role_id,))
-            results = cursor.fetchall()
-            payload = []
-            content = {}
-            
-            for result in results:
-                content={
-                    'id_usuario':int(result[0]),
-                    'tipo_documento':result[1],
-                    'numero_documento':result[2],
-                    'nombre':result[3],
-                    'apellido':result[4],
-                    'correo':result[5],
-                    'telefono':result[6],
-                    'contrasena':result[7],
-                    'estado':result[8],
-                    'id_rol':result[9]
-                }
-                payload.append(content)
-                content={}
-            
-            return payload
+            cursor.execute("""
+                UPDATE usuario
+                SET
+                    active = false,
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE id_usuario = %s
+            """, (id_usuario,))
 
-        except Exception as e:
-            return {"error": str(e)}
-
-        finally:
-            if conn:
-                conn.close()
-
-    def create_user_if_admin(self, current_user_role: int, user_data: dict):
-        if current_user_role != 1:  # Assuming 1 is admin role
-            return {"error": "Unauthorized: Only admins can create users"}
-        
-        conn = None
-        try:
-            conn = get_db_connection()
-            cursor = conn.cursor()
-            cursor.execute(
-                "INSERT INTO usuario (tipo_documento, numero_documento, nombre, apellido, correo, telefono, contrasena, estado, id_rol) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id_usuario",
-                (
-                    user_data['tipo_documento'],
-                    user_data['numero_documento'],
-                    user_data['nombre'],
-                    user_data['apellido'],
-                    user_data['correo'],
-                    user_data['telefono'],
-                    user_data['contrasena'],
-                    user_data['estado'],
-                    user_data['id_rol']
+            if cursor.rowcount == 0:
+                raise HTTPException(
+                    status_code=404,
+                    detail="Usuario not found"
                 )
-            )
-            new_id = cursor.fetchone()[0]
-            conn.commit()
-            return {"id_usuario": new_id}
-        except Exception as e:
-            if conn:
-                conn.rollback()
-            return {"error": str(e)}
-        finally:
-            if conn:
-                conn.close()
 
-    def update_user_role(self, current_user_role: int, id_usuario: int, new_role_id: int):
-        if current_user_role != 1:  # Assuming 1 is admin role
-            return {"error": "Unauthorized: Only admins can update user roles"}
-        
-        conn = None
-        try:
-            conn = get_db_connection()
-            cursor = conn.cursor()
-            cursor.execute("UPDATE usuario SET id_rol = %s WHERE id_usuario = %s",
-                (new_role_id, id_usuario)
-            )
             conn.commit()
-            return {"message": "User role updated successfully"}
-        except Exception as e:
-            if conn:
-                conn.rollback()
-            return {"error": str(e)}
-        finally:
-            if conn:
-                conn.close()
 
-    def delete_user_if_admin(self, current_user_role: int, id_usuario: int):
-        if current_user_role != 1:  # Assuming 1 is admin role
-            return {"error": "Unauthorized: Only admins can delete users"}
-        
-        conn = None
-        try:
-            conn = get_db_connection()
-            cursor = conn.cursor()
-            cursor.execute("DELETE FROM usuario WHERE id_usuario = %s", (id_usuario,))
-            conn.commit()
-            return {"message": "Usuario deleted successfully"}
+            return {
+                "message": "Usuario deleted successfully"
+            }
+
+        except HTTPException:
+            raise
+
         except Exception as e:
             if conn:
                 conn.rollback()
-            return {"error": str(e)}
+
+            raise HTTPException(status_code=500, detail=str(e))
+
         finally:
             if conn:
+                cursor.close()
                 conn.close()
-        

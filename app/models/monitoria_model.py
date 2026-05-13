@@ -1,6 +1,6 @@
 from typing import Optional
 from pydantic import BaseModel
-from datetime import date
+from datetime import date, datetime
 
 class Monitoria(BaseModel):
     id_monitoria: Optional[int] = None
@@ -16,3 +16,6 @@ class Monitoria(BaseModel):
     id_periodo: int
     asistencia: Optional[bool] = None
     observaciones: Optional[str] = None
+    active: bool = True
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None

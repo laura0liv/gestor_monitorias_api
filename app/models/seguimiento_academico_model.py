@@ -1,6 +1,7 @@
 from pydantic import BaseModel
 from typing import Optional
-from datetime import date
+from datetime import date,datetime
+
 
 class SeguimientoAcademico(BaseModel):
     id_seguimiento: Optional[int] = None
@@ -14,3 +15,6 @@ class SeguimientoAcademico(BaseModel):
     resultado: str
     estado: str
     fecha_cierre: Optional[date] = None
+    active: bool = True
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
