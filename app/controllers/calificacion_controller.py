@@ -1,132 +1,235 @@
-from http.client import HTTPException
 from fastapi import HTTPException
-from fastapi.encoders import jsonable_encoder
-import psycopg2
+from psycopg2.extras import RealDictCursor
 from config.db_config import get_db_connection
+
 
 class CalificacionController:
 
     def get_all_calificacions(self):
         conn = None
+
         try:
             conn = get_db_connection()
-            cursor = conn.cursor()
-            cursor.execute("SELECT * FROM calificacion")
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+
+            cursor.execute("""
+                SELECT
+                    id_calificacion,
+                    id_monitoria,
+                    puntuacion,
+                    comentario,
+                    fecha_calificacion,
+                    active,
+                    created_at,
+                    updated_at
+                FROM calificacion
+                WHERE active = true
+            """)
+
             results = cursor.fetchall()
-            payload = []
-            content = {}
-            
-            for result in results:
-                content={
-                    'id_calificacion':int(result[0]),
-                    'id_monitoria':result[1],
-                    'puntuacion':result[2],
-                    'comentario':result[3],
-                    'fecha_calificacion':result[4]
-                }
-                payload.append(content)
-                content={}
-            
-            return payload
+
+            return results
 
         except Exception as e:
-            return {"error": str(e)}
+            raise HTTPException(
+                status_code=500,
+                detail=str(e)
+            )
 
         finally:
             if conn:
+                cursor.close()
                 conn.close()
-                
+
     def get_calificacion(self, id_calificacion: int):
         conn = None
+
         try:
             conn = get_db_connection()
-            cursor = conn.cursor()
-            cursor.execute("SELECT * FROM calificacion WHERE id_calificacion = %s", (id_calificacion,))
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+
+            cursor.execute("""
+                SELECT
+                    id_calificacion,
+                    id_monitoria,
+                    puntuacion,
+                    comentario,
+                    fecha_calificacion,
+                    active,
+                    created_at,
+                    updated_at
+                FROM calificacion
+                WHERE id_calificacion = %s
+                AND active = true
+            """, (id_calificacion,))
+
             result = cursor.fetchone()
-            payload = []
-            content = {} 
-            
-            content={
-                    'id_calificacion':int(result[0]), #type: ignore
-                    'id_monitoria':result[1],#type: ignore
-                    'puntuacion':result[2],#type: ignore
-                    'comentario':result[3],#type: ignore
-                    'fecha_calificacion':result[4]#type: ignore
-                }
-            
-            payload.append(content)
-            
-            json_data = jsonable_encoder(content)            
-            if result:
-               return  json_data
-            else:
-                raise HTTPException(status_code=404, detail="Calificacion not found")
+
+            if not result:
+                raise HTTPException(
+                    status_code=404,
+                    detail="Calificacion not found"
+                )
+
+            return result
+
+        except HTTPException:
+            raise
 
         except Exception as e:
-            return {"error": str(e)}
+            raise HTTPException(
+                status_code=500,
+                detail=str(e)
+            )
 
         finally:
             if conn:
-                conn.close()
                 cursor.close()
-                
-    def create_calificacion(self, calificacion_data: dict):  
+                conn.close()
+
+    def create_calificacion(self, calificacion_data: dict):
         conn = None
+
         try:
             conn = get_db_connection()
-            cursor = conn.cursor()
-            cursor.execute("INSERT INTO calificacion (id_monitoria, puntuacion, comentario, fecha_calificacion) VALUES (%s, %s, %s, %s) RETURNING id_calificacion ",
-                            (calificacion_data['id_monitoria'],
-                             calificacion_data['puntuacion'],
-                             calificacion_data['comentario'],
-                             calificacion_data['fecha_calificacion']))
-            new_id = cursor.fetchone()[0] #type: ignore
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+
+            cursor.execute("""
+                INSERT INTO calificacion (
+                    id_monitoria,
+                    puntuacion,
+                    comentario,
+                    fecha_calificacion,
+                    active
+                )
+                VALUES (%s, %s, %s, %s, %s)
+                RETURNING id_calificacion
+            """, (
+                calificacion_data['id_monitoria'],
+                calificacion_data['puntuacion'],
+                calificacion_data['comentario'],
+                calificacion_data['fecha_calificacion'],
+                calificacion_data.get('active', True)
+            ))
+
+            new_calificacion = cursor.fetchone()
+
             conn.commit()
-            return {"id_calificacion": new_id}
+
+            return {
+                "message": "Calificacion created successfully",
+                "id_calificacion": new_calificacion["id_calificacion"]
+            }
+
         except Exception as e:
             if conn:
                 conn.rollback()
-            return {"error": str(e)}
+
+            raise HTTPException(
+                status_code=500,
+                detail=str(e)
+            )
+
         finally:
             if conn:
+                cursor.close()
                 conn.close()
-                cursor.close()  
-                
-    def update_calificacion(self, id_calificacion: int, calificacion_data: dict):           
+
+    def update_calificacion(self, id_calificacion: int, calificacion_data: dict):
         conn = None
+
         try:
             conn = get_db_connection()
             cursor = conn.cursor()
-            cursor.execute("UPDATE calificacion SET id_monitoria = %s, puntuacion = %s, comentario = %s, fecha_calificacion = %s WHERE id_calificacion = %s",
-                            (calificacion_data['id_monitoria'],
-                             calificacion_data['puntuacion'],
-                             calificacion_data['comentario'],
-                             calificacion_data['fecha_calificacion'],
-                             id_calificacion))
+
+            cursor.execute("""
+                UPDATE calificacion
+                SET
+                    id_monitoria = %s,
+                    puntuacion = %s,
+                    comentario = %s,
+                    fecha_calificacion = %s,
+                    active = %s,
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE id_calificacion = %s
+            """, (
+                calificacion_data['id_monitoria'],
+                calificacion_data['puntuacion'],
+                calificacion_data['comentario'],
+                calificacion_data['fecha_calificacion'],
+                calificacion_data['active'],
+                id_calificacion
+            ))
+
+            if cursor.rowcount == 0:
+                raise HTTPException(
+                    status_code=404,
+                    detail="Calificacion not found"
+                )
+
             conn.commit()
-            return {"message": "Calificacion updated successfully"}
+
+            return {
+                "message": "Calificacion updated successfully"
+            }
+
+        except HTTPException:
+            raise
+
         except Exception as e:
             if conn:
                 conn.rollback()
-            return {"error": str(e)}
+
+            raise HTTPException(
+                status_code=500,
+                detail=str(e)
+            )
+
         finally:
             if conn:
-                conn.close()
                 cursor.close()
-                
+                conn.close()
+
     def delete_calificacion(self, id_calificacion: int):
         conn = None
+
         try:
             conn = get_db_connection()
             cursor = conn.cursor()
-            cursor.execute("DELETE FROM calificacion WHERE id_calificacion = %s", (id_calificacion,))
+
+            cursor.execute("""
+                UPDATE calificacion
+                SET
+                    active = false,
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE id_calificacion = %s
+            """, (id_calificacion,))
+
+            if cursor.rowcount == 0:
+                raise HTTPException(
+                    status_code=404,
+                    detail="Calificacion not found"
+                )
+
             conn.commit()
-            return {"message": "Calificacion deleted successfully"}
+
+            return {
+                "message": "Calificacion deleted successfully"
+            }
+
+        except HTTPException:
+            raise
+
         except Exception as e:
             if conn:
                 conn.rollback()
-            return {"error": str(e)}
+
+            raise HTTPException(
+                status_code=500,
+                detail=str(e)
+            )
+
         finally:
             if conn:
-                conn.close()
                 cursor.close()
+                conn.close()

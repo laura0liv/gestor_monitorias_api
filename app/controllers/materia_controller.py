@@ -1,6 +1,5 @@
-from http.client import HTTPException
-from fastapi.encoders import jsonable_encoder
-import psycopg2
+from fastapi import HTTPException
+from psycopg2.extras import RealDictCursor
 from config.db_config import get_db_connection
 
 
@@ -8,130 +7,212 @@ class MateriaController:
 
     def get_all_materia(self):
         conn = None
+
         try:
             conn = get_db_connection()
-            cursor = conn.cursor()
-            cursor.execute("SELECT * FROM materia")
-            results = cursor.fetchall()
-            payload = []
-            content = {}
-            
-            for result in results:
-                content={
-                    'id_materia':int(result[0]),
-                    'nombre_materia':result[1],
-                    'codigo_materia':result[2],
-                    'creditos':result[3],
-                    'id_programa':result[4]
-                }
-                payload.append(content)
-                content={}
-            
-            return payload
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+
+            cursor.execute("""
+                SELECT
+                    id_materia,
+                    nombre_materia,
+                    codigo_materia,
+                    creditos,
+                    id_programa,
+                    active,
+                    created_at,
+                    updated_at
+                FROM materia
+                WHERE active = true
+            """)
+
+            return cursor.fetchall()
 
         except Exception as e:
-            return {"error": str(e)}
+            raise HTTPException(status_code=500, detail=str(e))
 
         finally:
             if conn:
+                cursor.close()
                 conn.close()
-    
-    
+
     def get_materia(self, id_materia: int):
+        conn = None
+
         try:
             conn = get_db_connection()
-            cursor = conn.cursor()
-            cursor.execute("SELECT * FROM materia WHERE id_materia = %s", (id_materia,))
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+
+            cursor.execute("""
+                SELECT
+                    id_materia,
+                    nombre_materia,
+                    codigo_materia,
+                    creditos,
+                    id_programa,
+                    active,
+                    created_at,
+                    updated_at
+                FROM materia
+                WHERE id_materia = %s
+                AND active = true
+            """, (id_materia,))
+
             result = cursor.fetchone()
-            payload = []
-            content = {} 
-            
-            content={
-                    'id_materia':int(result[0]),
-                    'nombre_materia':result[1],
-                    'codigo_materia':result[2],
-                    'creditos':result[3],
-                    'id_programa':result[4]
-            }
-            payload.append(content)
-            
-            json_data = jsonable_encoder(content)            
-            if result:
-               return  json_data
-            else:
-                raise HTTPException(status_code=404, detail="Materia not found")  
-                
-        except psycopg2.Error as err:
-            print(err)
-            conn.rollback()
+
+            if not result:
+                raise HTTPException(
+                    status_code=404,
+                    detail="Materia not found"
+                )
+
+            return result
+
+        except HTTPException:
+            raise
+
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=str(e))
+
         finally:
-            conn.close()
+            if conn:
+                cursor.close()
+                conn.close()
 
     def create_materia(self, materia_data: dict):
         conn = None
+
         try:
             conn = get_db_connection()
-            cursor = conn.cursor()
-            cursor.execute(
-                "INSERT INTO materia (nombre_materia, codigo_materia, creditos, id_programa) VALUES (%s, %s, %s, %s) RETURNING id_materia",
-                (
-                    materia_data['nombre_materia'],
-                    materia_data['codigo_materia'],
-                    materia_data['creditos'],
-                    materia_data['id_programa']
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+
+            cursor.execute("""
+                INSERT INTO materia (
+                    nombre_materia,
+                    codigo_materia,
+                    creditos,
+                    id_programa,
+                    active
                 )
-            )
-            new_id = cursor.fetchone()[0]
+                VALUES (%s, %s, %s, %s, %s)
+                RETURNING id_materia
+            """, (
+                materia_data['nombre_materia'],
+                materia_data['codigo_materia'],
+                materia_data['creditos'],
+                materia_data['id_programa'],
+                materia_data.get('active', True)
+            ))
+
+            new_data = cursor.fetchone()
+
             conn.commit()
-            return {"id_materia": new_id}
+
+            return {
+                "message": "Materia created successfully",
+                "id_materia": new_data["id_materia"]
+            }
+
         except Exception as e:
             if conn:
                 conn.rollback()
-            return {"error": str(e)}
+
+            raise HTTPException(status_code=500, detail=str(e))
+
         finally:
             if conn:
+                cursor.close()
                 conn.close()
-
 
     def update_materia(self, id_materia: int, materia_data: dict):
         conn = None
+
         try:
             conn = get_db_connection()
             cursor = conn.cursor()
-            cursor.execute(
-                "UPDATE materia SET nombre_materia = %s, codigo_materia = %s, creditos = %s, id_programa = %s WHERE id_materia = %s",
-                (
-                    materia_data['nombre_materia'],
-                    materia_data['codigo_materia'],
-                    materia_data['creditos'],
-                    materia_data['id_programa'],
-                    id_materia
+
+            cursor.execute("""
+                UPDATE materia
+                SET
+                    nombre_materia = %s,
+                    codigo_materia = %s,
+                    creditos = %s,
+                    id_programa = %s,
+                    active = %s,
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE id_materia = %s
+            """, (
+                materia_data['nombre_materia'],
+                materia_data['codigo_materia'],
+                materia_data['creditos'],
+                materia_data['id_programa'],
+                materia_data['active'],
+                id_materia
+            ))
+
+            if cursor.rowcount == 0:
+                raise HTTPException(
+                    status_code=404,
+                    detail="Materia not found"
                 )
-            )
+
             conn.commit()
-            return {"message": "Materia updated successfully"}
+
+            return {
+                "message": "Materia updated successfully"
+            }
+
+        except HTTPException:
+            raise
+
         except Exception as e:
             if conn:
                 conn.rollback()
-            return {"error": str(e)}
+
+            raise HTTPException(status_code=500, detail=str(e))
+
         finally:
             if conn:
+                cursor.close()
                 conn.close()
-
 
     def delete_materia(self, id_materia: int):
         conn = None
+
         try:
             conn = get_db_connection()
             cursor = conn.cursor()
-            cursor.execute("DELETE FROM materia WHERE id_materia = %s", (id_materia,))
+
+            cursor.execute("""
+                UPDATE materia
+                SET
+                    active = false,
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE id_materia = %s
+            """, (id_materia,))
+
+            if cursor.rowcount == 0:
+                raise HTTPException(
+                    status_code=404,
+                    detail="Materia not found"
+                )
+
             conn.commit()
-            return {"message": "Materia deleted successfully"}
+
+            return {
+                "message": "Materia deleted successfully"
+            }
+
+        except HTTPException:
+            raise
+
         except Exception as e:
             if conn:
                 conn.rollback()
-            return {"error": str(e)}
+
+            raise HTTPException(status_code=500, detail=str(e))
+
         finally:
             if conn:
+                cursor.close()
                 conn.close()
-        

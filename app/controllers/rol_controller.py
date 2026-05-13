@@ -1,118 +1,200 @@
 from fastapi import HTTPException
-from fastapi.encoders import jsonable_encoder
-import psycopg2
+from psycopg2.extras import RealDictCursor
 from config.db_config import get_db_connection
 
-class RolController():
+
+class RolController:
 
     def get_all_rol(self):
         conn = None
+
         try:
             conn = get_db_connection()
-            cursor = conn.cursor()
-            cursor.execute("SELECT * FROM rol")
-            results = cursor.fetchall()
-            payload = []
-            content = {}
-            
-            for result in results:
-                content={
-                    'id_rol':int(result[0]),
-                    'nombre_rol':result[1]
-                }
-                payload.append(content)
-                content={}
-            
-            return payload
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+
+            cursor.execute("""
+                SELECT
+                    id_rol,
+                    nombre_rol,
+                    active,
+                    created_at,
+                    updated_at
+                FROM rol
+                WHERE active = true
+            """)
+
+            return cursor.fetchall()
 
         except Exception as e:
-            return {"error": str(e)}
+            raise HTTPException(status_code=500, detail=str(e))
 
         finally:
             if conn:
+                cursor.close()
                 conn.close()
-    
 
     def get_rol(self, id_rol: int):
+        conn = None
+
         try:
             conn = get_db_connection()
-            cursor = conn.cursor()
-            cursor.execute("SELECT * FROM rol WHERE id_rol = %s", (id_rol,))
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+
+            cursor.execute("""
+                SELECT
+                    id_rol,
+                    nombre_rol,
+                    active,
+                    created_at,
+                    updated_at
+                FROM rol
+                WHERE id_rol = %s
+                AND active = true
+            """, (id_rol,))
+
             result = cursor.fetchone()
-            payload = []
-            content = {} 
-            
-            content={
-                    'id_rol':int(result[0]),
-                    'nombre_rol':result[1]
-            }
-            payload.append(content)
-            
-            json_data = jsonable_encoder(content)            
-            if result:
-               return  json_data
-            else:
-                raise HTTPException(status_code=404, detail="Rol not found")  
-                
-        except psycopg2.Error as err:
-            print(err)
-            conn.rollback()
+
+            if not result:
+                raise HTTPException(
+                    status_code=404,
+                    detail="Rol not found"
+                )
+
+            return result
+
+        except HTTPException:
+            raise
+
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=str(e))
+
         finally:
-            conn.close()
+            if conn:
+                cursor.close()
+                conn.close()
 
     def create_rol(self, rol_data: dict):
         conn = None
+
         try:
             conn = get_db_connection()
-            cursor = conn.cursor()
-            cursor.execute(
-                "INSERT INTO rol (nombre_rol) VALUES (%s) RETURNING id_rol",
-                (rol_data['nombre_rol'],)
-            )
-            new_id = cursor.fetchone()[0]
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+
+            cursor.execute("""
+                INSERT INTO rol (
+                    nombre_rol,
+                    active
+                )
+                VALUES (%s, %s)
+                RETURNING id_rol
+            """, (
+                rol_data['nombre_rol'],
+                rol_data.get('active', True)
+            ))
+
+            new_data = cursor.fetchone()
+
             conn.commit()
-            return {"id_rol": new_id, "nombre_rol": rol_data['nombre_rol']}
+
+            return {
+                "message": "Rol created successfully",
+                "id_rol": new_data["id_rol"]
+            }
+
         except Exception as e:
             if conn:
                 conn.rollback()
-            return {"error": str(e)}
+
+            raise HTTPException(status_code=500, detail=str(e))
+
         finally:
             if conn:
+                cursor.close()
                 conn.close()
-    
 
     def update_rol(self, id_rol: int, rol_data: dict):
         conn = None
+
         try:
             conn = get_db_connection()
             cursor = conn.cursor()
-            cursor.execute(
-                "UPDATE rol SET nombre_rol = %s WHERE id_rol = %s",
-                (rol_data['nombre_rol'], id_rol)
-            )
+
+            cursor.execute("""
+                UPDATE rol
+                SET
+                    nombre_rol = %s,
+                    active = %s,
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE id_rol = %s
+            """, (
+                rol_data['nombre_rol'],
+                rol_data['active'],
+                id_rol
+            ))
+
+            if cursor.rowcount == 0:
+                raise HTTPException(
+                    status_code=404,
+                    detail="Rol not found"
+                )
+
             conn.commit()
-            return {"id_rol": id_rol, "nombre_rol": rol_data['nombre_rol']}
+
+            return {
+                "message": "Rol updated successfully"
+            }
+
+        except HTTPException:
+            raise
+
         except Exception as e:
             if conn:
                 conn.rollback()
-            return {"error": str(e)}
+
+            raise HTTPException(status_code=500, detail=str(e))
+
         finally:
             if conn:
+                cursor.close()
                 conn.close()
 
-
     def delete_rol(self, id_rol: int):
+        conn = None
+
         try:
             conn = get_db_connection()
             cursor = conn.cursor()
-            cursor.execute("DELETE FROM rol WHERE id_rol = %s", (id_rol,))
-            conn.commit()
+
+            cursor.execute("""
+                UPDATE rol
+                SET
+                    active = false,
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE id_rol = %s
+            """, (id_rol,))
+
             if cursor.rowcount == 0:
-                raise HTTPException(status_code=404, detail="Rol not found")
-            return {"message": "Rol deleted successfully"}
-        except psycopg2.Error as err:
-            print(err)
-            conn.rollback()
-            raise HTTPException(status_code=500, detail="Error deleting rol")
+                raise HTTPException(
+                    status_code=404,
+                    detail="Rol not found"
+                )
+
+            conn.commit()
+
+            return {
+                "message": "Rol deleted successfully"
+            }
+
+        except HTTPException:
+            raise
+
+        except Exception as e:
+            if conn:
+                conn.rollback()
+
+            raise HTTPException(status_code=500, detail=str(e))
+
         finally:
-            conn.close()
+            if conn:
+                cursor.close()
+                conn.close()

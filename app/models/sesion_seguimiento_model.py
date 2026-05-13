@@ -1,6 +1,6 @@
 from pydantic import BaseModel, EmailStr
 from typing import Optional
-from datetime import date
+from datetime import date, datetime
 
 
 class SesionSeguimiento(BaseModel):
@@ -9,3 +9,6 @@ class SesionSeguimiento(BaseModel):
     fecha: date
     observaciones: Optional[str] = None
     avance: Optional[int] = None
+    active: bool = True
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None

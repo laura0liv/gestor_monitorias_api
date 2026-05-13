@@ -1,13 +1,13 @@
 from fastapi import APIRouter
 from fastapi.encoders import jsonable_encoder
 from models.horario_monitor_model import HorarioMonitor
-from controllers.horario_monitor_controller import HoriarioMonitorController
+from controllers.horario_monitor_controller import HorarioMonitorController
 
 router = APIRouter(
     prefix="/horario_monitor",
     tags=["Horario Monitor"]
 )
-nuevo_horario_monitor = HoriarioMonitorController()
+nuevo_horario_monitor = HorarioMonitorController()
 
 
 @router.get("/get_horario_monitors/")

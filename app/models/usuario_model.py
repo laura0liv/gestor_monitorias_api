@@ -1,3 +1,4 @@
+from datetime import datetime
 from pydantic import BaseModel, EmailStr
 from typing import Optional
 
@@ -12,4 +13,6 @@ class Usuario(BaseModel):
     contrasena: str
     estado: Optional[str] = "activo"
     id_rol: int
-
+    active: bool = True
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
