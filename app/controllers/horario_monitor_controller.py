@@ -14,11 +14,11 @@ class HorarioMonitorController:
 
             cursor.execute("""
                 SELECT
-                    id_horario_monitor,
+                    id_horario,
                     id_monitor,
                     dia_semana,
-                    hora_inicio,
-                    hora_fin,
+                    TO_CHAR(hora_inicio, 'HH24:MI') AS hora_inicio,
+                    TO_CHAR(hora_fin,    'HH24:MI') AS hora_fin
                     active,
                     created_at,
                     updated_at
@@ -36,7 +36,7 @@ class HorarioMonitorController:
                 cursor.close()
                 conn.close()
 
-    def get_horario_monitor(self, id_horario_monitor: int):
+    def get_horario_monitor(self, id_horario: int):
         conn = None
 
         try:
@@ -45,18 +45,18 @@ class HorarioMonitorController:
 
             cursor.execute("""
                 SELECT
-                    id_horario_monitor,
+                    id_horario,
                     id_monitor,
                     dia_semana,
-                    hora_inicio,
-                    hora_fin,
+                    TO_CHAR(hora_inicio, 'HH24:MI') AS hora_inicio,
+                    TO_CHAR(hora_fin,    'HH24:MI') AS hora_fin
                     active,
                     created_at,
                     updated_at
                 FROM horario_monitor
-                WHERE id_horario_monitor = %s
+                WHERE id_horario = %s
                 AND active = true
-            """, (id_horario_monitor,))
+            """, (id_horario,))
 
             result = cursor.fetchone()
 
@@ -95,7 +95,7 @@ class HorarioMonitorController:
                     active
                 )
                 VALUES (%s, %s, %s, %s, %s)
-                RETURNING id_horario_monitor
+                RETURNING id_horario
             """, (
                 horario_monitor_data['id_monitor'],
                 horario_monitor_data['dia_semana'],
@@ -110,7 +110,7 @@ class HorarioMonitorController:
 
             return {
                 "message": "Horario Monitor created successfully",
-                "id_horario_monitor": new_data["id_horario_monitor"]
+                "id_horario": new_data["id_horario"]
             }
 
         except Exception as e:
@@ -124,7 +124,7 @@ class HorarioMonitorController:
                 cursor.close()
                 conn.close()
 
-    def update_horario_monitor(self, id_horario_monitor: int, horario_monitor_data: dict):
+    def update_horario_monitor(self, id_horario: int, horario_monitor_data: dict):
         conn = None
 
         try:
@@ -140,14 +140,14 @@ class HorarioMonitorController:
                     hora_fin = %s,
                     active = %s,
                     updated_at = CURRENT_TIMESTAMP
-                WHERE id_horario_monitor = %s
+                WHERE id_horario = %s
             """, (
                 horario_monitor_data['id_monitor'],
                 horario_monitor_data['dia_semana'],
                 horario_monitor_data['hora_inicio'],
                 horario_monitor_data['hora_fin'],
                 horario_monitor_data['active'],
-                id_horario_monitor
+                id_horario
             ))
 
             if cursor.rowcount == 0:
@@ -176,7 +176,7 @@ class HorarioMonitorController:
                 cursor.close()
                 conn.close()
 
-    def delete_horario_monitor(self, id_horario_monitor: int):
+    def delete_horario_monitor(self, id_horario: int):
         conn = None
 
         try:
@@ -188,8 +188,8 @@ class HorarioMonitorController:
                 SET
                     active = false,
                     updated_at = CURRENT_TIMESTAMP
-                WHERE id_horario_monitor = %s
-            """, (id_horario_monitor,))
+                WHERE id_horario = %s
+            """, (id_horario,))
 
             if cursor.rowcount == 0:
                 raise HTTPException(
@@ -212,6 +212,55 @@ class HorarioMonitorController:
 
             raise HTTPException(status_code=500, detail=str(e))
 
+        finally:
+            if conn:
+                cursor.close()
+                conn.close()
+
+    def get_horarios_by_monitor(self, id_monitor: int):
+        conn = None
+        try:
+            conn = get_db_connection()
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+            cursor.execute("""
+                SELECT
+                    id_horario,
+                    id_monitor,
+                    dia_semana,
+                    -- Convertir TIME a string HH:MM directo en SQL
+                    TO_CHAR(hora_inicio, 'HH24:MI') AS hora_inicio,
+                    TO_CHAR(hora_fin,    'HH24:MI') AS hora_fin
+                FROM horario_monitor
+                WHERE id_monitor = %s
+                AND active = true
+            """, (id_monitor,))
+            return cursor.fetchall()
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=str(e))
+        finally:
+            if conn:
+                cursor.close()
+                conn.close()
+
+    def delete_horarios_by_monitor(self, id_monitor: int):
+        """Soft-delete de TODOS los slots del monitor (para reemplazarlos)"""
+        conn = None
+        try:
+            conn = get_db_connection()
+            cursor = conn.cursor()
+            cursor.execute("""
+                UPDATE horario_monitor
+                SET active = false,
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE id_monitor = %s
+                AND active = true
+            """, (id_monitor,))
+            conn.commit()
+            return {"message": "Horarios eliminados correctamente"}
+        except Exception as e:
+            if conn:
+                conn.rollback()
+            raise HTTPException(status_code=500, detail=str(e))
         finally:
             if conn:
                 cursor.close()

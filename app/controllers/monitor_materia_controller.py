@@ -272,3 +272,49 @@ class MonitorMateriaController:
             if conn:
                 cursor.close()
                 conn.close()
+
+
+    def get_materias_by_monitor(self, id_monitor: int):
+        conn = None
+
+        try:
+            conn = get_db_connection()
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+
+            cursor.execute("""
+                SELECT
+                    m.id_materia,
+                    m.nombre_materia
+                FROM monitor_materia mm
+                JOIN materia m
+                    ON mm.id_materia = m.id_materia
+                WHERE mm.id_monitor = %s
+                ORDER BY m.nombre_materia
+            """, (id_monitor,))
+
+            results = cursor.fetchall()
+
+            if not results:
+                raise HTTPException(
+                    status_code=404,
+                    detail="No se encontraron materias para este monitor"
+                )
+
+            return {
+                "id_monitor": id_monitor,
+                "materias": results
+            }
+
+        except HTTPException:
+            raise
+
+        except Exception as e:
+            raise HTTPException(
+                status_code=500,
+                detail=str(e)
+            )
+
+        finally:
+            if conn:
+                cursor.close()
+                conn.close()

@@ -40,3 +40,8 @@ async def get_monitors_and_subjects():
 @router.delete("/delete_subject_from_monitor_if_admin/{current_user_role}/{id_monitor}/{id_materia}")
 async def delete_subject_from_monitor_if_admin(current_user_role: int, id_monitor: int, id_materia: int):
     return nueva_monitor_materias.delete_subject_from_monitor_if_admin(current_user_role, id_monitor, id_materia)
+
+@router.get("/get_materias_by_monitor/{id_monitor}")
+async def get_materias_by_monitor(id_monitor: int):
+    rpta = nueva_monitor_materias.get_materias_by_monitor(id_monitor)
+    return rpta
