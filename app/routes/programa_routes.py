@@ -1,7 +1,7 @@
 from fastapi import APIRouter
 from fastapi.encoders import jsonable_encoder
-from models.programa_model import Programa
-from controllers.programa_controller import ProgramaController
+from app.models.programa_model import Programa
+from app.controllers.programa_controller import ProgramaController
 
 router = APIRouter(
     prefix="/programa",

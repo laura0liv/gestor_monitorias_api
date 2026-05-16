@@ -1,7 +1,7 @@
 from fastapi import APIRouter
 from fastapi.encoders import jsonable_encoder
-from models.sesion_seguimiento_model import SesionSeguimiento
-from controllers.sesion_seguimiento_controller import SesionSeguimientoController
+from app.models.sesion_seguimiento_model import SesionSeguimiento
+from app.controllers.sesion_seguimiento_controller import SesionSeguimientoController
 
 router = APIRouter(
     prefix="/sesion_seguimiento",

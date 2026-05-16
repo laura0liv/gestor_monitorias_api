@@ -1,8 +1,8 @@
 
 from fastapi import APIRouter
 from fastapi.encoders import jsonable_encoder
-from models.monitoria_model import Monitoria
-from controllers.monitoria_controller import MonitoriaController
+from app.models.monitoria_model import Monitoria
+from app.controllers.monitoria_controller import MonitoriaController
 
 router = APIRouter(
     prefix="/monitoria",

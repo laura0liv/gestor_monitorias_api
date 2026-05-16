@@ -1,8 +1,8 @@
 
 from fastapi import APIRouter
 from fastapi.encoders import jsonable_encoder
-from controllers.rol_controller import RolController
-from models.rol_model import Rol
+from app.controllers.rol_controller import RolController
+from app.models.rol_model import Rol
 
 
 router = APIRouter(

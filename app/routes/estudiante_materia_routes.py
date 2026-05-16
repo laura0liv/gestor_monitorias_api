@@ -1,7 +1,7 @@
 from fastapi import APIRouter
 from fastapi.encoders import jsonable_encoder
-from models.estudiante_materia_model import EstudianteMateria
-from controllers.estudiante_materia_controller import EstudianteMateriaController
+from app.models.estudiante_materia_model import EstudianteMateria
+from app.controllers.estudiante_materia_controller import EstudianteMateriaController
 
 router = APIRouter(
     prefix="/estudiante_materia",

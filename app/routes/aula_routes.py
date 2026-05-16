@@ -1,7 +1,7 @@
 from fastapi import APIRouter
 from fastapi.encoders import jsonable_encoder
-from models.aula_model import Aula
-from controllers.aula_controller import AulaController
+from app.models.aula_model import Aula
+from app.controllers.aula_controller import AulaController
 
 router = APIRouter(
     prefix="/aula",

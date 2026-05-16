@@ -1,7 +1,7 @@
 from fastapi import APIRouter
 from fastapi.encoders import jsonable_encoder
-from controllers.monitor_materia_controller import MonitorMateriaController
-from models.monitor_materia_model import MonitorMateria
+from app.controllers.monitor_materia_controller import MonitorMateriaController
+from app.models.monitor_materia_model import MonitorMateria
 
 router = APIRouter(
     prefix="/monitor_materia",

@@ -1,6 +1,6 @@
 from fastapi import HTTPException
 from psycopg2.extras import RealDictCursor
-from config.db_config import get_db_connection
+from app.config.db_config import get_db_connection
 
 
 class MonitoriaController:

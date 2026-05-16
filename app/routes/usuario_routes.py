@@ -1,8 +1,8 @@
 
 from fastapi import APIRouter
 from fastapi.encoders import jsonable_encoder
-from controllers.usuario_controller import UsuarioController
-from models.usuario_model import Usuario
+from app.controllers.usuario_controller import UsuarioController
+from app.models.usuario_model import Usuario
 
 
 router = APIRouter(

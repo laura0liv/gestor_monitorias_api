@@ -1,7 +1,7 @@
 from fastapi import APIRouter
 from fastapi.encoders import jsonable_encoder
-from controllers.periodo_academico_controller import PeriodoAcademicoController
-from models.periodo_academico_model import PeriodoAcademico
+from app.controllers.periodo_academico_controller import PeriodoAcademicoController
+from app.models.periodo_academico_model import PeriodoAcademico
 
 router = APIRouter(
     prefix="/periodo_academico",

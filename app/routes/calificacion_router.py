@@ -1,7 +1,7 @@
 from fastapi import APIRouter
 from fastapi.encoders import jsonable_encoder
-from models.calificacion_model import Calificacion
-from controllers.calificacion_controller import CalificacionController
+from app.models.calificacion_model import Calificacion
+from app.controllers.calificacion_controller import CalificacionController
 
 
 router = APIRouter(

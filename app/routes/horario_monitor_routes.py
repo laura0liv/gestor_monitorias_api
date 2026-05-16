@@ -1,8 +1,8 @@
 from fastapi import APIRouter
 from fastapi.encoders import jsonable_encoder
 
-from models.horario_monitor_model import HorarioMonitor
-from controllers.horario_monitor_controller import HorarioMonitorController
+from app.models.horario_monitor_model import HorarioMonitor
+from app.controllers.horario_monitor_controller import HorarioMonitorController
 
 router = APIRouter(
     prefix="/horario_monitor",
