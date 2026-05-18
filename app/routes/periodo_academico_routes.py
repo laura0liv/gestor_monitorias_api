@@ -9,9 +9,16 @@ router = APIRouter(
 )
 nuevo_periodo_academico = PeriodoAcademicoController()
 
+
+
 @router.get("/get_periodos_academicos/")
 async def get_periodos_academicos():
     rpta = nuevo_periodo_academico.get_all_periodo_academico()
+    return rpta
+
+@router.get("/activo")
+async def get_periodo_activo():
+    rpta = nuevo_periodo_academico.get_periodo_activo()
     return rpta
 
 @router.get("/get_periodo_academico/{id_periodo_academico}")

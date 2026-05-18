@@ -225,3 +225,40 @@ class PeriodoAcademicoController:
             if conn:
                 cursor.close()
                 conn.close()
+
+    def get_periodo_activo(self):
+        """
+        Retorna el periodo académico cuya fecha_inicio <= hoy <= fecha_fin
+        y que esté active = true. Debe existir exactamente uno.
+        """
+        conn = None
+        try:
+            conn = get_db_connection()
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+            cursor.execute("""
+                SELECT
+                    id_periodo,
+                    nombre_periodo,
+                    fecha_inicio,
+                    fecha_fin
+                FROM periodo_academico
+                WHERE active = true
+                AND fecha_inicio <= CURRENT_DATE
+                AND fecha_fin    >= CURRENT_DATE
+                LIMIT 1
+            """)
+            result = cursor.fetchone()
+            if not result:
+                raise HTTPException(
+                    status_code=404,
+                    detail="No hay un periodo académico activo en este momento"
+                )
+            return result
+        except HTTPException:
+            raise
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=str(e))
+        finally:
+            if conn:
+                cursor.close()
+                conn.close()

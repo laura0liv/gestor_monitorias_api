@@ -1,4 +1,3 @@
-
 from fastapi import APIRouter
 from fastapi.encoders import jsonable_encoder
 from app.models.materia_model import Materia
@@ -10,21 +9,25 @@ router = APIRouter(
 )
 nueva_materia = MateriaController()
 
+
 @router.get("/get_all_materia/")
 async def get_all_materia():
     rpta = nueva_materia.get_all_materia()
     return rpta
 
+
 @router.get("/get_materia/{id_materia}")
-async def get_materia(id_materia: int): 
+async def get_materia(id_materia: int):
     rpta = nueva_materia.get_materia(id_materia)
     return rpta
 
+
 @router.post("/create_materia/")
-async def create_materia(materia: Materia): 
+async def create_materia(materia: Materia):
     materia_data = jsonable_encoder(materia)
     rpta = nueva_materia.create_materia(materia_data)
     return rpta
+
 
 @router.put("/update_materia/{id_materia}")
 async def update_materia(id_materia: int, materia: Materia):
@@ -32,7 +35,28 @@ async def update_materia(id_materia: int, materia: Materia):
     rpta = nueva_materia.update_materia(id_materia, materia_data)
     return rpta
 
+
 @router.delete("/delete_materia/{id_materia}")
 async def delete_materia(id_materia: int):
     rpta = nueva_materia.delete_materia(id_materia)
+    return rpta
+
+
+
+@router.get(
+    "/disponibles",
+    summary="Materias con al menos un monitor activo",
+    description="""
+    Consumido por MateriasEstudiante.svelte.
+
+    Retorna por cada materia que tenga ≥1 monitor asignado y activo:
+      - id_materia
+      - nombre_materia
+      - creditos
+      - nombre_programa   ← programa al que pertenece la materia (usado como descripción)
+      - monitores_disponibles  ← conteo de monitores activos asignados
+    """
+)
+async def get_materias_disponibles():
+    rpta = nueva_materia.get_materias_disponibles()
     return rpta
