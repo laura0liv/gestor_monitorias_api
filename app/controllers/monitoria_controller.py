@@ -412,10 +412,10 @@ class MonitoriaController:
     def responder_monitoria(self, id_monitoria: int, id_monitor: int, accion: str, observaciones: str = None):
         """
         El tutor acepta o rechaza una monitoría pendiente.
-        accion: 'Aceptada' | 'Rechazada'
+        accion: 'Programada' | 'Rechazada'
         """
-        if accion not in ("Aceptada", "Rechazada"):
-            raise HTTPException(status_code=400, detail="Acción inválida. Use 'Aceptada' o 'Rechazada'")
+        if accion not in ("Programada", "Rechazada"):
+            raise HTTPException(status_code=400, detail="Acción inválida. Use 'Programada' o 'Rechazada'")
 
         try:
             with get_db_connection() as conn:
@@ -451,7 +451,7 @@ class MonitoriaController:
 
                     conn.commit()
 
-                    mensaje = "Monitoría aceptada correctamente" if accion == "Aceptada" else "Monitoría rechazada"
+                    mensaje = "Monitoría aceptada correctamente" if accion == "Programada" else "Monitoría rechazada"
                     return {"message": mensaje}
 
         except HTTPException:
