@@ -489,14 +489,20 @@ class MonitoriaController:
                     cursor.execute("""
                         UPDATE monitoria
                         SET asistencia    = %s,
-                            estado        = 'Completada',
+                            estado        = CASE WHEN %s THEN 'Completada' ELSE 'Cancelada' END,
                             observaciones = COALESCE(%s, observaciones),
                             updated_at    = CURRENT_TIMESTAMP
                         WHERE id_monitoria = %s
-                    """, (asistencia, observaciones, id_monitoria))
+                    """, (asistencia, asistencia, observaciones, id_monitoria))
 
                     conn.commit()
-                    return {"message": "Asistencia registrada y monitoría marcada como Completada"}
+
+                    mensaje = (
+                        "Asistencia registrada y monitoría marcada como Completada"
+                        if asistencia else
+                        "Inasistencia registrada y monitoría marcada como Cancelada"
+                    )
+                    return {"message": mensaje}
 
         except HTTPException:
             raise
