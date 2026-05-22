@@ -53,12 +53,6 @@ class MonitoriaController:
     # ─────────────────────────────────────────────
 
     def get_tutores_disponibles(self, id_materia: int, fecha: str, hora_inicio: str, hora_fin: str):
-        """
-        Devuelve los tutores que:
-          1. Están asignados a la materia solicitada.
-          2. Tienen un horario registrado que cubre el bloque pedido en ese día de la semana.
-          3. NO tienen otra monitoría activa (Pendiente o Programada) que se solape en esa fecha/hora.
-        """
         try:
             with get_db_connection() as conn:
                 with conn.cursor(cursor_factory=RealDictCursor) as cursor:
@@ -78,12 +72,9 @@ class MonitoriaController:
                           AND mm.active     = true
                           AND u.active      = true
                           AND hm.active     = true
-                          -- El día de la semana del horario coincide con la fecha pedida
                           AND hm.dia_semana = TO_CHAR(DATE %s, 'TMDay')
-                          -- El horario del tutor cubre completamente el bloque pedido
                           AND hm.hora_inicio <= %s::time
                           AND hm.hora_fin    >= %s::time
-                          -- El tutor NO tiene conflicto de monitoría en esa fecha/hora
                           AND NOT EXISTS (
                               SELECT 1
                               FROM monitoria conf
@@ -98,9 +89,9 @@ class MonitoriaController:
                     """, (
                         id_materia,
                         fecha,
-                        hora_inicio, hora_fin,   # cubre el bloque
+                        hora_inicio, hora_fin,
                         fecha,
-                        hora_fin, hora_inicio    # sin conflicto
+                        hora_fin, hora_inicio
                     ))
                     tutores = cursor.fetchall()
 
@@ -166,8 +157,8 @@ class MonitoriaController:
                         SELECT 1
                         FROM monitor_materia
                         WHERE id_monitor = %s
-                        AND id_materia = %s
-                        AND active     = true
+                          AND id_materia = %s
+                          AND active     = true
                     """, (monitoria_data["id_monitor"], monitoria_data["id_materia"]))
 
                     if not cursor.fetchone():
@@ -181,20 +172,20 @@ class MonitoriaController:
                         SELECT 1
                         FROM horario_monitor
                         WHERE id_monitor = %s
-                        AND dia_semana = (
-                            CASE EXTRACT(DOW FROM DATE %s)::int
-                                WHEN 0 THEN 'Domingo'
-                                WHEN 1 THEN 'Lunes'
-                                WHEN 2 THEN 'Martes'
-                                WHEN 3 THEN 'Miércoles'
-                                WHEN 4 THEN 'Jueves'
-                                WHEN 5 THEN 'Viernes'
-                                WHEN 6 THEN 'Sábado'
-                            END
-                        )
-                        AND hora_inicio <= %s::time
-                        AND hora_fin    >= %s::time
-                        AND active      = true
+                          AND dia_semana = (
+                              CASE EXTRACT(DOW FROM DATE %s)::int
+                                  WHEN 0 THEN 'Domingo'
+                                  WHEN 1 THEN 'Lunes'
+                                  WHEN 2 THEN 'Martes'
+                                  WHEN 3 THEN 'Miércoles'
+                                  WHEN 4 THEN 'Jueves'
+                                  WHEN 5 THEN 'Viernes'
+                                  WHEN 6 THEN 'Sábado'
+                              END
+                          )
+                          AND hora_inicio <= %s::time
+                          AND hora_fin    >= %s::time
+                          AND active      = true
                     """, (
                         monitoria_data["id_monitor"],
                         monitoria_data["fecha"],
@@ -202,7 +193,7 @@ class MonitoriaController:
                         monitoria_data["hora_fin"]
                     ))
 
-                    if not cursor.fetchone():          # ← faltaba esto
+                    if not cursor.fetchone():
                         raise HTTPException(
                             status_code=400,
                             detail="El tutor no tiene disponibilidad en ese horario"
@@ -213,11 +204,11 @@ class MonitoriaController:
                         SELECT 1
                         FROM monitoria
                         WHERE id_monitor  = %s
-                        AND fecha       = DATE %s
-                        AND hora_inicio < %s::time
-                        AND hora_fin    > %s::time
-                        AND estado IN ('Pendiente', 'Programada')
-                        AND active = true
+                          AND fecha       = DATE %s
+                          AND hora_inicio < %s::time
+                          AND hora_fin    > %s::time
+                          AND estado IN ('Pendiente', 'Programada')
+                          AND active = true
                     """, (
                         monitoria_data["id_monitor"],
                         monitoria_data["fecha"],
@@ -236,11 +227,11 @@ class MonitoriaController:
                         SELECT 1
                         FROM monitoria
                         WHERE id_estudiante = %s
-                        AND fecha         = DATE %s
-                        AND hora_inicio   < %s::time
-                        AND hora_fin      > %s::time
-                        AND estado IN ('Pendiente', 'Programada')
-                        AND active = true
+                          AND fecha         = DATE %s
+                          AND hora_inicio   < %s::time
+                          AND hora_fin      > %s::time
+                          AND estado IN ('Pendiente', 'Programada')
+                          AND active = true
                     """, (
                         monitoria_data["id_estudiante"],
                         monitoria_data["fecha"],
@@ -293,8 +284,8 @@ class MonitoriaController:
             raise
         except Exception as e:
             import traceback
-            traceback.print_exc()  # ← esto en los logs de Render te dirá la línea exacta
-            raise HTTPException(status_code=500, detail=str(e))  # ← muestra el error real
+            traceback.print_exc()
+            raise HTTPException(status_code=500, detail=str(e))
 
     def cancelar_monitoria_estudiante(self, id_monitoria: int, id_estudiante: int):
         """El estudiante cancela una monitoría propia que aún esté Pendiente."""
@@ -443,15 +434,15 @@ class MonitoriaController:
 
                     cursor.execute("""
                         UPDATE monitoria
-                        SET estado       = %s,
+                        SET estado        = %s,
                             observaciones = COALESCE(%s, observaciones),
-                            updated_at   = CURRENT_TIMESTAMP
+                            updated_at    = CURRENT_TIMESTAMP
                         WHERE id_monitoria = %s
                     """, (accion, observaciones, id_monitoria))
 
                     conn.commit()
 
-                    mensaje = "Monitoría Programada correctamente" if accion == "Programada" else "Monitoría rechazada"
+                    mensaje = "Monitoría programada correctamente" if accion == "Programada" else "Monitoría rechazada"
                     return {"message": mensaje}
 
         except HTTPException:
@@ -486,14 +477,17 @@ class MonitoriaController:
                             detail="Solo se puede registrar asistencia en monitorías Programadas"
                         )
 
+                    # ← Python decide el estado, evita CASE WHEN con booleano en psycopg2
+                    nuevo_estado = 'Completada' if asistencia else 'Cancelada'
+
                     cursor.execute("""
                         UPDATE monitoria
                         SET asistencia    = %s,
-                            estado        = CASE WHEN %s THEN 'Completada' ELSE 'Cancelada' END,
+                            estado        = %s,
                             observaciones = COALESCE(%s, observaciones),
                             updated_at    = CURRENT_TIMESTAMP
                         WHERE id_monitoria = %s
-                    """, (asistencia, asistencia, observaciones, id_monitoria))
+                    """, (asistencia, nuevo_estado, observaciones, id_monitoria))
 
                     conn.commit()
 
@@ -594,8 +588,6 @@ class MonitoriaController:
         except HTTPException:
             raise
         except Exception as e:
-            if conn:
-                conn.rollback()
             print(e)
             raise HTTPException(status_code=500, detail="Error actualizando monitoría")
 
@@ -618,7 +610,5 @@ class MonitoriaController:
         except HTTPException:
             raise
         except Exception as e:
-            if conn:
-                conn.rollback()
             print(e)
             raise HTTPException(status_code=500, detail="Error eliminando monitoría")
