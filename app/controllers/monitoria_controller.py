@@ -57,7 +57,7 @@ class MonitoriaController:
         Devuelve los tutores que:
           1. Están asignados a la materia solicitada.
           2. Tienen un horario registrado que cubre el bloque pedido en ese día de la semana.
-          3. NO tienen otra monitoría activa (Pendiente o Aceptada) que se solape en esa fecha/hora.
+          3. NO tienen otra monitoría activa (Pendiente o Programada) que se solape en esa fecha/hora.
         """
         try:
             with get_db_connection() as conn:
@@ -91,7 +91,7 @@ class MonitoriaController:
                                 AND conf.fecha      = DATE %s
                                 AND conf.hora_inicio < %s::time
                                 AND conf.hora_fin   > %s::time
-                                AND conf.estado IN ('Pendiente', 'Aceptada')
+                                AND conf.estado IN ('Pendiente', 'Programada')
                                 AND conf.active = true
                           )
                         ORDER BY u.nombre
@@ -451,7 +451,7 @@ class MonitoriaController:
 
                     conn.commit()
 
-                    mensaje = "Monitoría aceptada correctamente" if accion == "Programada" else "Monitoría rechazada"
+                    mensaje = "Monitoría Programada correctamente" if accion == "Programada" else "Monitoría rechazada"
                     return {"message": mensaje}
 
         except HTTPException:
@@ -461,7 +461,7 @@ class MonitoriaController:
             raise HTTPException(status_code=500, detail="Error al responder la monitoría")
 
     def registrar_asistencia(self, id_monitoria: int, id_monitor: int, asistencia: bool, observaciones: str = None):
-        """El tutor registra si el estudiante asistió a la monitoría (estado debe ser 'Aceptada')."""
+        """El tutor registra si el estudiante asistió a la monitoría (estado debe ser 'Programada')."""
         try:
             with get_db_connection() as conn:
                 with conn.cursor(cursor_factory=RealDictCursor) as cursor:
@@ -480,10 +480,10 @@ class MonitoriaController:
                     if monitoria["id_monitor"] != id_monitor:
                         raise HTTPException(status_code=403, detail="No tienes permiso para registrar asistencia en esta monitoría")
 
-                    if monitoria["estado"] != "Aceptada":
+                    if monitoria["estado"] != "Programada":
                         raise HTTPException(
                             status_code=400,
-                            detail="Solo se puede registrar asistencia en monitorías Aceptadas"
+                            detail="Solo se puede registrar asistencia en monitorías Programadas"
                         )
 
                     cursor.execute("""
