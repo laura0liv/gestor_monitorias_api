@@ -216,7 +216,7 @@ class MonitoriaController:
                         AND fecha       = DATE %s
                         AND hora_inicio < %s::time
                         AND hora_fin    > %s::time
-                        AND estado IN ('Pendiente', 'Aceptada')
+                        AND estado IN ('Pendiente', 'Programada')
                         AND active = true
                     """, (
                         monitoria_data["id_monitor"],
@@ -239,7 +239,7 @@ class MonitoriaController:
                         AND fecha         = DATE %s
                         AND hora_inicio   < %s::time
                         AND hora_fin      > %s::time
-                        AND estado IN ('Pendiente', 'Aceptada')
+                        AND estado IN ('Pendiente', 'Programada')
                         AND active = true
                     """, (
                         monitoria_data["id_estudiante"],
@@ -292,8 +292,9 @@ class MonitoriaController:
         except HTTPException:
             raise
         except Exception as e:
-            print(e)
-            raise HTTPException(status_code=500, detail="Error al solicitar la monitoría")
+            import traceback
+            traceback.print_exc()  # ← esto en los logs de Render te dirá la línea exacta
+            raise HTTPException(status_code=500, detail=str(e))  # ← muestra el error real
 
     def cancelar_monitoria_estudiante(self, id_monitoria: int, id_estudiante: int):
         """El estudiante cancela una monitoría propia que aún esté Pendiente."""
