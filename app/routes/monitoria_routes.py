@@ -14,7 +14,6 @@ controller = MonitoriaController()
 # ──────────────────────────────────────────────────────
 
 class SolicitarMonitoriaSchema(BaseModel):
-    """Payload que envía el estudiante al solicitar una monitoría."""
     id_monitor: int
     id_estudiante: int
     id_materia: int
@@ -22,19 +21,17 @@ class SolicitarMonitoriaSchema(BaseModel):
     fecha: date
     hora_inicio: time
     hora_fin: time
-    modalidad: str            # 'Presencial' | 'Virtual'
+    modalidad: str
     id_periodo: int
     observaciones: Optional[str] = None
 
 
 class ResponderMonitoriaSchema(BaseModel):
-    """Payload que envía el tutor para aceptar o rechazar."""
-    accion: str               # 'Aceptada' | 'Rechazada'
+    accion: str
     observaciones: Optional[str] = None
 
 
 class AsistenciaSchema(BaseModel):
-    """Payload que envía el tutor para registrar asistencia."""
     asistencia: bool
     observaciones: Optional[str] = None
 
@@ -63,50 +60,9 @@ def get_all_monitorias():
     return controller.get_all_monitorias()
 
 
-@router.get("/{id_monitoria}", summary="Obtener detalle de una monitoría")
-def get_monitoria(id_monitoria: int):
-    return controller.get_monitoria(id_monitoria)
-
-
-@router.put("/{id_monitoria}", summary="Actualizar monitoría (admin)")
-def update_monitoria(id_monitoria: int, body: UpdateMonitoriaSchema):
-    return controller.update_monitoria(id_monitoria, body.model_dump())
-
-
-@router.delete("/{id_monitoria}", summary="Eliminar monitoría (soft delete)")
-def delete_monitoria(id_monitoria: int):
-    return controller.delete_monitoria(id_monitoria)
-
-
 # ──────────────────────────────────────────────────────
-# MÓDULO ESTUDIANTE
+# MÓDULO ESTUDIANTE — rutas estáticas primero
 # ──────────────────────────────────────────────────────
-
-@router.get(
-    "/estudiante/{id_estudiante}",
-    summary="Ver mis monitorías (estudiante)",
-    description="Lista todas las monitorías del estudiante: pendientes, aceptadas, completadas, etc."
-)
-def get_monitorias_estudiante(id_estudiante: int):
-    return controller.get_monitorias_estudiante(id_estudiante)
-
-
-@router.get(
-    "/disponibilidad/tutores",
-    summary="Consultar tutores disponibles",
-    description=(
-        "Devuelve los tutores que pueden atender la materia solicitada "
-        "en la fecha y bloque horario indicados, sin conflictos de agenda."
-    )
-)
-def get_tutores_disponibles(
-    id_materia:   int = Query(..., description="ID de la materia"),
-    fecha:        str = Query(..., description="Fecha deseada (YYYY-MM-DD)"),
-    hora_inicio:  str = Query(..., description="Hora de inicio deseada (HH:MM)"),
-    hora_fin:     str = Query(..., description="Hora de fin deseada (HH:MM)")
-):
-    return controller.get_tutores_disponibles(id_materia, fecha, hora_inicio, hora_fin)
-
 
 @router.post(
     "/solicitar",
@@ -120,17 +76,34 @@ def solicitar_monitoria(body: SolicitarMonitoriaSchema):
     return controller.solicitar_monitoria(body.model_dump())
 
 
-@router.patch(
-    "/{id_monitoria}/cancelar/estudiante/{id_estudiante}",
-    summary="Cancelar monitoría (estudiante)",
-    description="El estudiante cancela una monitoría propia que aún esté en estado 'Pendiente'."
+@router.get(
+    "/disponibilidad/tutores",
+    summary="Consultar tutores disponibles",
+    description=(
+        "Devuelve los tutores que pueden atender la materia solicitada "
+        "en la fecha y bloque horario indicados, sin conflictos de agenda."
+    )
 )
-def cancelar_monitoria_estudiante(id_monitoria: int, id_estudiante: int):
-    return controller.cancelar_monitoria_estudiante(id_monitoria, id_estudiante)
+def get_tutores_disponibles(
+    id_materia:  int = Query(..., description="ID de la materia"),
+    fecha:       str = Query(..., description="Fecha deseada (YYYY-MM-DD)"),
+    hora_inicio: str = Query(..., description="Hora de inicio deseada (HH:MM)"),
+    hora_fin:    str = Query(..., description="Hora de fin deseada (HH:MM)")
+):
+    return controller.get_tutores_disponibles(id_materia, fecha, hora_inicio, hora_fin)
+
+
+@router.get(
+    "/estudiante/{id_estudiante}",
+    summary="Ver mis monitorías (estudiante)",
+    description="Lista todas las monitorías del estudiante: pendientes, aceptadas, completadas, etc."
+)
+def get_monitorias_estudiante(id_estudiante: int):
+    return controller.get_monitorias_estudiante(id_estudiante)
 
 
 # ──────────────────────────────────────────────────────
-# MÓDULO TUTOR
+# MÓDULO TUTOR — rutas estáticas primero
 # ──────────────────────────────────────────────────────
 
 @router.get(
@@ -149,6 +122,34 @@ def get_monitorias_tutor(id_monitor: int):
 )
 def get_monitorias_tutor_pendientes(id_monitor: int):
     return controller.get_monitorias_tutor_pendientes(id_monitor)
+
+
+# ──────────────────────────────────────────────────────
+# RUTAS DINÁMICAS — siempre al final
+# ──────────────────────────────────────────────────────
+
+@router.get("/{id_monitoria}", summary="Obtener detalle de una monitoría")
+def get_monitoria(id_monitoria: int):
+    return controller.get_monitoria(id_monitoria)
+
+
+@router.put("/{id_monitoria}", summary="Actualizar monitoría (admin)")
+def update_monitoria(id_monitoria: int, body: UpdateMonitoriaSchema):
+    return controller.update_monitoria(id_monitoria, body.model_dump())
+
+
+@router.delete("/{id_monitoria}", summary="Eliminar monitoría (soft delete)")
+def delete_monitoria(id_monitoria: int):
+    return controller.delete_monitoria(id_monitoria)
+
+
+@router.patch(
+    "/{id_monitoria}/cancelar/estudiante/{id_estudiante}",
+    summary="Cancelar monitoría (estudiante)",
+    description="El estudiante cancela una monitoría propia que aún esté en estado 'Pendiente'."
+)
+def cancelar_monitoria_estudiante(id_monitoria: int, id_estudiante: int):
+    return controller.cancelar_monitoria_estudiante(id_monitoria, id_estudiante)
 
 
 @router.patch(
